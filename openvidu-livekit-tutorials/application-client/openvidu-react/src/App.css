@@ -1,134 +1,177 @@
 #join {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
 }
 
 #join-dialog {
-    width: 70%;
-    max-width: 900px;
-    padding: 60px;
-    border-radius: 6px;
-    background-color: #f0f0f0;
+  width: 70%;
+  max-width: 900px;
+  padding: 60px;
+  border-radius: 6px;
+  background-color: #f0f0f0;
 }
 
 #join-dialog h2 {
-    color: #4d4d4d;
-    font-size: 60px;
-    font-weight: bold;
-    text-align: center;
+  color: #4d4d4d;
+  font-size: 60px;
+  font-weight: bold;
+  text-align: center;
 }
 
 #join-dialog form {
-    text-align: left;
+  text-align: left;
 }
 
 #join-dialog label {
-    display: block;
-    margin-bottom: 10px;
-    color: #0088aa;
-    font-weight: bold;
-    font-size: 20px;
+  display: block;
+  margin-bottom: 10px;
+  color: #0088aa;
+  font-weight: bold;
+  font-size: 20px;
 }
 
 .form-control {
-    width: 100%;
-    padding: 8px;
-    margin-bottom: 10px;
-    box-sizing: border-box;
-    color: #0088aa;
-    font-weight: bold;
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 10px;
+  box-sizing: border-box;
+  color: #0088aa;
+  font-weight: bold;
 }
 
 .form-control:focus {
-    color: #0088aa;
-    border-color: #0088aa;
-    -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(0, 136, 170, 0.6);
-    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(0, 136, 170, 0.6);
+  color: #0088aa;
+  border-color: #0088aa;
+  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075),
+    0 0 8px rgba(0, 136, 170, 0.6);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075),
+    0 0 8px rgba(0, 136, 170, 0.6);
 }
 
 #join-dialog button {
-    display: block;
-    margin: 20px auto 0;
+  display: block;
+  margin: 20px auto 0;
 }
 
 .btn {
-    font-weight: bold;
+  font-weight: bold;
 }
 
 .btn-success {
-    background-color: #06d362;
-    border-color: #06d362;
+  background-color: #06d362;
+  border-color: #06d362;
 }
 
 .btn-success:hover {
-    background-color: #1abd61;
-    border-color: #1abd61;
+  background-color: #1abd61;
+  border-color: #1abd61;
 }
 
 #room {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 #room-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    max-width: 1000px;
-    padding: 0 20px;
-    margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 1000px;
+  padding: 0 20px;
+  margin-bottom: 20px;
 }
 
 #room-title {
-    font-size: 2em;
-    font-weight: bold;
-    margin: 0;
+  font-size: 2em;
+  font-weight: bold;
+  margin: 0;
 }
 
 #layout-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 10px;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-    max-width: 1000px;
-    height: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  max-width: 1000px;
+  height: 100%;
 }
 
 /* Media Queries */
 @media screen and (max-width: 768px) {
-    #join-dialog {
-        width: 90%;
-        padding: 30px;
-    }
+  #join-dialog {
+    width: 90%;
+    padding: 30px;
+  }
 
-    #join-dialog h2 {
-        font-size: 50px;
-    }
+  #join-dialog h2 {
+    font-size: 50px;
+  }
 
-    #layout-container {
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    }
+  #layout-container {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  }
 }
 
 @media screen and (max-width: 480px) {
-    #join-dialog {
-        width: 100%;
-        padding: 20px;
-    }
+  #join-dialog {
+    width: 100%;
+    padding: 20px;
+  }
 
-    #join-dialog h2 {
-        font-size: 40px;
-    }
+  #join-dialog h2 {
+    font-size: 40px;
+  }
 
-    #layout-container {
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    }
+  #layout-container {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+}
+/* 채팅 컨테이너 스타일 */
+.lk-chat {
+  background-color: #ffffff !important;
+  border-radius: 8px !important;
+  /* 다른 스타일 */
+}
+
+.lk-room-container {
+  position: absolute;
+  right: 20px;
+  bottom: 20px;
+  width: 300px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  z-index: 1000;
+}
+
+.lk-room-container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* 채팅 헤더 스타일 */
+.lk-chat-header {
+  background-color: #f0f0f0 !important;
+  /* 다른 스타일 */
+}
+
+/* 메시지 입력창 스타일 */
+.lk-chat-form-input {
+  border: 1px solid #ddd !important;
+  /* 다른 스타일 */
+}
+
+/* 전송 버튼 스타일 */
+.lk-chat-form-button {
+  background-color: #007bff !important;
+  /* 다른 스타일 */
 }
