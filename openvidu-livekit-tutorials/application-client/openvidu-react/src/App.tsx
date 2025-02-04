@@ -9,7 +9,7 @@ import {
 import { LiveKitRoom } from "./custom-livekit/src/components/LiveKitRoom";
 import { Chat } from "./custom-livekit/src/prefabs/Chat";
 import "./App.css";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import VideoComponent from "./components/VideoComponent";
 import AudioComponent from "./components/AudioComponent";
 
@@ -20,31 +20,36 @@ type TrackInfo = {
 
 // When running OpenVidu locally, leave these variables empty
 // For other deployment type, configure them with correct URLs depending on your deployment
-let APPLICATION_SERVER_URL = "";
-let LIVEKIT_URL = "";
+let APPLICATION_SERVER_URL = "https://jaemoon99.site:15555/"; 
+let LIVEKIT_URL = "wss://jaemoon99.site:7443/";
 let accessToken = "";
 
-configureUrls();
+// configureUrls();
 
-function configureUrls() {
-  // If APPLICATION_SERVER_URL is not configured, use default value from OpenVidu Local deployment
-  if (!APPLICATION_SERVER_URL) {
-    if (window.location.hostname === "localhost") {
-      APPLICATION_SERVER_URL = "http://localhost:6080/";
-    } else {
-      APPLICATION_SERVER_URL = "https://" + window.location.hostname + ":6443/";
-    }
-  }
+// function configureUrls() {
+//   // If APPLICATION_SERVER_URL is not configured, use default value from OpenVidu Local deployment
+//   if (!APPLICATION_SERVER_URL) {
+//     // if (window.location.hostname === "localhost") {
+//     //   APPLICATION_SERVER_URL = "http://localhost:5555/";
+//     // } else {
+//     //   APPLICATION_SERVER_URL = "https://" + window.location.hostname + ":15555/";
+//     // }
+//     APPLICATION_SERVER_URL = "http://43.202.81.12:5555/";
+//     // APPLICATION_SERVER_URL = "https://jaemoon99.site:15555/";
 
-  // If LIVEKIT_URL is not configured, use default value from OpenVidu Local deployment
-  if (!LIVEKIT_URL) {
-    if (window.location.hostname === "localhost") {
-      LIVEKIT_URL = "ws://localhost:7880/";
-    } else {
-      LIVEKIT_URL = "wss://" + window.location.hostname + ":7443/";
-    }
-  }
-}
+//   }
+
+//   // If LIVEKIT_URL is not configured, use default value from OpenVidu Local deployment
+//   if (!LIVEKIT_URL) {
+//     // if (window.location.hostname === "localhost") {
+//     //   LIVEKIT_URL = "ws://localhost:7880/";
+//     // } else {
+//     //   LIVEKIT_URL = "wss://" + window.location.hostname + ":7443/";
+//     // }
+//     LIVEKIT_URL = "ws://43.202.81.12:7880/";
+//     // LIVEKIT_URL = "wss://jaemoon99.site:7443/";
+//   }
+// }
 
 function App() {
   const [room, setRoom] = useState<Room | undefined>(undefined);
@@ -53,15 +58,30 @@ function App() {
   );
   const [remoteTracks, setRemoteTracks] = useState<TrackInfo[]>([]);
 
+  // 추후 이건 userData.nickname으로 받아올 것(input은 따로 없음)
   const [participantName, setParticipantName] = useState(
     "Participant" + Math.floor(Math.random() * 100)
   );
+  // 추후 이건 강의 이름 혹은 random 값으로 받아올 예정
   const [roomName, setRoomName] = useState("Test Room");
+  const [availableRooms, setAvailableRooms] = useState<string[]>([]);
+  
+  // roomCreatorRef를 useState로 변경
+  const [roomCreator, setRoomCreator] = useState<string | null>(() => {
+    return localStorage.getItem('roomCreator');
+  });
 
-  async function joinRoom() {
-    // Initialize a new Room object
+  useEffect(() => {
+    fetchRoomList();
+  }, []); 
+
+  // 방 생성 로직
+  async function createRoom() {
     const room = new Room();
     setRoom(room);
+    // 방장 정보를 localStorage에 저장
+    localStorage.setItem('roomCreator', participantName);
+    setRoomCreator(participantName);
 
     // Specify the actions when events take place in the room
     // On every new Track received...
@@ -97,7 +117,9 @@ function App() {
     try {
       // Get a token from your application server with the room name and participant name
       const token = await getToken(roomName, participantName);
+      console.log("rtc token : ", token);
       accessToken = await getToken(roomName, `ssp ${participantName}`);
+      console.log("chat token : ", accessToken);
       // Connect to the room with the LiveKit URL and the token
       await room.connect(LIVEKIT_URL, token);
 
@@ -105,7 +127,7 @@ function App() {
       await room.localParticipant.enableCameraAndMicrophone();
       setLocalTrack(
         room.localParticipant.videoTrackPublications.values().next().value
-          .videoTrack
+          ?.videoTrack
       );
     } catch (error) {
       console.log(
@@ -116,11 +138,12 @@ function App() {
     }
   }
 
+  // 방 나가기 로직
   async function leaveRoom() {
-    // Leave the room by calling 'disconnect' method over the Room object
     await room?.disconnect();
-
-    // Reset the state
+    // 방을 나갈 때 roomCreator 정보 삭제
+    localStorage.removeItem('roomCreator');
+    setRoomCreator(null);
     setRoom(undefined);
     setLocalTrack(undefined);
     setRemoteTracks([]);
@@ -128,17 +151,18 @@ function App() {
 
   /**
    * --------------------------------------------
-   * GETTING A TOKEN FROM YOUR APPLICATION SERVER
+   * 애플리케이션 서버에서 토큰 발급받기
    * --------------------------------------------
-   * The method below request the creation of a token to
-   * your application server. This prevents the need to expose
-   * your LiveKit API key and secret to the client side.
-   *
-   * In this sample code, there is no user control at all. Anybody could
-   * access your application server endpoints. In a real production
-   * environment, your application server must identify the user to allow
-   * access to the endpoints.
+   * 아래 메서드는 애플리케이션 서버에 토큰 생성을 요청합니다.
+   * 이를 통해 LiveKit API 키와 시크릿을 클라이언트 측에 노출할 
+   * 필요가 없어집니다.
+   * 
+   * 이 샘플 코드에서는 사용자 제어가 전혀 없습니다. 누구나
+   * 애플리케이션 서버 엔드포인트에 접근할 수 있습니다. 실제 프로덕션
+   * 환경에서는 애플리케이션 서버가 엔드포인트 접근을 허용하기 위해
+   * 사용자를 식별해야 합니다.
    */
+  // 토큰 발급 로직
   async function getToken(roomName: string, participantName: string) {
     const response = await fetch(APPLICATION_SERVER_URL + "token", {
       method: "POST",
@@ -160,8 +184,114 @@ function App() {
     return data.token;
   }
 
-  const token =
-    "eyJhbGciOiJIUzI1NiJ9.eyJ2aWRlbyI6eyJyb29tSm9pbiI6dHJ1ZSwicm9vbSI6IlRlc3QgUm9vbSJ9LCJpc3MiOiJkZXZrZXkiLCJleHAiOjE3Mzg1ODc5NzcsIm5iZiI6MCwic3ViIjoiUGFydGljaXBhbnQ3NSJ9.Ez--RDpu-7JqvDFYsUJfxv_Hz5OkuOttU7WiQOEdx60";
+
+  // 방 참여 로직
+  async function joinRoom(roomToJoin: string) {
+    setRoomName(roomToJoin);
+    // Initialize a new Room object
+    const newRoom = new Room();
+    setRoom(newRoom);
+
+    // Specify the actions when events take place in the room
+    // On every new Track received...
+    newRoom.on(
+      RoomEvent.TrackSubscribed,
+      (
+        _track: RemoteTrack,
+        publication: RemoteTrackPublication,
+        participant: RemoteParticipant
+      ) => {
+        // roomCreator가 없을 때만 설정
+        if (!localStorage.getItem('roomCreator')) {
+          localStorage.setItem('roomCreator', participant.identity);
+          setRoomCreator(participant.identity);
+        }
+        setRemoteTracks((prev) => [
+          ...prev,
+          {
+            trackPublication: publication,
+            participantIdentity: participant.identity,
+          },
+        ]);
+      }
+    );
+
+    // On every Track destroyed...
+    newRoom.on(
+      RoomEvent.TrackUnsubscribed,
+      (_track: RemoteTrack, publication: RemoteTrackPublication) => {
+        setRemoteTracks((prev) =>
+          prev.filter(
+            (track) => track.trackPublication.trackSid !== publication.trackSid
+          )
+        );
+      }
+    );
+
+    try {
+      // Get tokens for joining the room
+      const response = await fetch(APPLICATION_SERVER_URL + "join", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          roomName: roomToJoin,
+          participantName: participantName,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to join room');
+      }
+
+      const data = await response.json();
+      const token = data.token;
+      
+      // Get chat token
+      accessToken = await getToken(roomToJoin, `ssp ${participantName}`);
+      
+      // Connect to the room
+      await newRoom.connect(LIVEKIT_URL, token);
+      
+      await newRoom.localParticipant.enableCameraAndMicrophone();
+      setLocalTrack(
+        newRoom.localParticipant.videoTrackPublications.values().next().value
+          ?.videoTrack
+      );
+    } catch (error) {
+      console.log(
+        "There was an error joining the room:",
+        (error as Error).message
+      );
+      await leaveRoom();
+    }
+  }
+
+  // 사용 가능한 방 목록을 가져오는 함수
+  async function fetchRoomList() {
+    try {
+      const response = await fetch(APPLICATION_SERVER_URL + "rooms");
+      if (!response.ok) {
+        throw new Error('Failed to fetch rooms');
+      }
+      const rooms = await response.json();
+      setAvailableRooms(rooms);
+    } catch (error) {
+      console.error('방 목록을 가져오는데 실패했습니다:', error);
+    }
+  }
+
+  // 방 성생 핸들러
+  const handleCreateRoom = (selectedRoom: string) => {
+    setRoomName(selectedRoom);
+    createRoom();
+  };
+
+  // 방 참여 핸들러
+  const handleJoinRoom = (selectedRoom: string) => {
+    joinRoom(selectedRoom);
+  };
 
   return (
     <>
@@ -170,10 +300,6 @@ function App() {
           <div id="join-dialog">
             <h2>Join a Video Room</h2>
             <form
-              onSubmit={(e) => {
-                joinRoom();
-                e.preventDefault();
-              }}
             >
               <div>
                 <label htmlFor="participant-name">Participant</label>
@@ -186,6 +312,8 @@ function App() {
                   required
                 />
               </div>
+
+              {/* 직접 입력 또는 선택 */}
               <div>
                 <label htmlFor="room-name">Room</label>
                 <input
@@ -197,12 +325,31 @@ function App() {
                   required
                 />
               </div>
+
+              <div>
+                <h2>라이브 목록</h2>
+                <hr />
+                <div className="room-buttons">
+                  {Object.keys(availableRooms).map((room) => (
+                    <button
+                      key={room}
+                      type="button"
+                      className={`btn ${roomName === room ? 'btn-primary' : 'btn-secondary'}`}
+                      onClick={() => handleJoinRoom(room)}
+                    >
+                      {room}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <button
                 className="btn btn-lg btn-success"
                 type="submit"
                 disabled={!roomName || !participantName}
+                onClick={() => handleCreateRoom(roomName)}
               >
-                Join!
+                Create
               </button>
             </form>
           </div>
@@ -211,35 +358,40 @@ function App() {
         <div id="room">
           <div id="room-header">
             <h2 id="room-title">{roomName}</h2>
-            <button
-              className="btn btn-danger"
-              id="leave-room-button"
-              onClick={leaveRoom}
-            >
-              Leave Room
-            </button>
+            {room && roomCreator === participantName && (
+              <button
+                className="btn btn-large btn-danger"
+                onClick={leaveRoom}
+              >
+                Leave Room
+              </button>
+            )}
           </div>
           <div id="layout-container">
-            {localTrack && (
+            {/* 방장일 때는 자신의 비디오만 표시 */}
+            {roomCreator === participantName && localTrack && (
               <VideoComponent
                 track={localTrack}
                 participantIdentity={participantName}
                 local={true}
               />
             )}
-            {remoteTracks.map((remoteTrack) =>
-              remoteTrack.trackPublication.kind === "video" ? (
-                <VideoComponent
-                  key={remoteTrack.trackPublication.trackSid}
-                  track={remoteTrack.trackPublication.videoTrack!}
-                  participantIdentity={remoteTrack.participantIdentity}
-                />
-              ) : (
-                <AudioComponent
-                  key={remoteTrack.trackPublication.trackSid}
-                  track={remoteTrack.trackPublication.audioTrack!}
-                />
-              )
+            {/* 참여자일 때는 방장의 비디오만 표시 */}
+            {roomCreator !== participantName && remoteTracks
+              .filter(track => track.participantIdentity === roomCreator)
+              .map((remoteTrack) =>
+                remoteTrack.trackPublication.kind === "video" ? (
+                  <VideoComponent
+                    key={remoteTrack.trackPublication.trackSid}
+                    track={remoteTrack.trackPublication.videoTrack!}
+                    participantIdentity={remoteTrack.participantIdentity}
+                  />
+                ) : (
+                  <AudioComponent
+                    key={remoteTrack.trackPublication.trackSid}
+                    track={remoteTrack.trackPublication.audioTrack!}
+                  />
+                )
             )}
           </div>
           <LiveKitRoom
