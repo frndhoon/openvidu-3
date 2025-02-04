@@ -133,7 +133,7 @@ export function Chat({
           disabled={isSending}
           ref={inputRef}
           type="text"
-          placeholder="입력하세sss요."
+          placeholder="입력하세요."
           onInput={(ev) => ev.stopPropagation()}
           onKeyDown={(ev) => ev.stopPropagation()}
           onKeyUp={(ev) => ev.stopPropagation()}
