@@ -1,10 +1,11 @@
 package io.openvidu.basic.java;
 
-import java.util.Map;
+import java.util.*;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -26,12 +27,33 @@ public class Controller {
 	@Value("${livekit.api.secret}")
 	private String LIVEKIT_API_SECRET;
 
+	private Map<String, String> roomList = new HashMap<>();
+
 	/**
 	 * @param params JSON object with roomName and participantName
 	 * @return JSON object with the JWT token
 	 */
 	@PostMapping(value = "/token")
 	public ResponseEntity<Map<String, String>> createToken(@RequestBody Map<String, String> params) {
+		String roomName = params.get("roomName");
+		String participantName = params.get("participantName");
+
+		roomList.put(roomName, participantName);
+
+		if (roomName == null || participantName == null) {
+			return ResponseEntity.badRequest().body(Map.of("errorMessage", "roomName and participantName are required"));
+		}
+
+		AccessToken token = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
+		token.setName(participantName);
+		token.setIdentity(participantName);
+		token.addGrants(new RoomJoin(true), new RoomName(roomName));
+
+		return ResponseEntity.ok(Map.of("token", token.toJwt()));
+	}
+
+	@PostMapping(value = "/join")
+	public ResponseEntity<Map<String, String>> join(@RequestBody Map<String, String> params) {
 		String roomName = params.get("roomName");
 		String participantName = params.get("participantName");
 
@@ -59,4 +81,8 @@ public class Controller {
 		return ResponseEntity.ok("ok");
 	}
 
+	@GetMapping(value = "/rooms")
+	public ResponseEntity<Map<String, String>> getRooms() {
+		return ResponseEntity.ok(roomList);
+	}
 }
