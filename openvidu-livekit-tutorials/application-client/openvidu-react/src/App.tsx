@@ -94,7 +94,8 @@ function App() {
   }, []); 
 
   // 방 생성 함수
-  async function createRoom() {
+  async function createRoom(roomName: string) {
+    setRoomName(roomName);
     // 새로운 Room 인스턴스 생성
     const room = new Room();
     setRoom(room);
@@ -165,6 +166,75 @@ function App() {
     }
   }
 
+    // 방 참여 로직
+    async function joinRoom(roomName: string) {
+      setRoomName(roomName);
+      // 새로운 Room 인스턴스 생성
+      const room = new Room();
+      setRoom(room);
+  
+      // 방 이벤트 리스너 설정
+      // 새로운 트랙이 수신될 때
+      room.on(
+        RoomEvent.TrackSubscribed,
+        (
+          _track: RemoteTrack,
+          publication: RemoteTrackPublication,
+          participant: RemoteParticipant
+        ) => {
+          // roomCreator가 없을 때만 설정(없어도 될 거 같음)
+          if (!localStorage.getItem('roomCreator')) {
+            localStorage.setItem('roomCreator', participant.identity);
+            setRoomCreator(participant.identity);
+          }
+          setRemoteTracks((prev) => [
+            ...prev,
+            {
+              trackPublication: publication,
+              participantIdentity: participant.identity,
+            },
+          ]);
+        }
+      );
+  
+      // 트랙이 소멸될 때
+      room.on(
+        RoomEvent.TrackUnsubscribed,
+        (_track: RemoteTrack, publication: RemoteTrackPublication) => {
+          setRemoteTracks((prev) =>
+            prev.filter(
+              (track) => track.trackPublication.trackSid !== publication.trackSid
+            )
+          );
+        }
+      );
+  
+      try {
+        // 방 참여 토큰 발급
+        const rtcTokenResponse = await getToken(roomName, `rtc ${participantName}`);
+        const chatTokenResponse = await getToken(roomName, `chat ${participantName}`);
+        const excalidrawTokenResponse = await getToken(roomName, `excalidraw ${participantName}`);
+  
+        setRtcToken(rtcTokenResponse);
+        setChatToken(chatTokenResponse);
+        setExcalidrawToken(excalidrawTokenResponse);
+  
+        // 방에 연결
+        await room.connect(LIVEKIT_URL, rtcTokenResponse);
+        
+        await room.localParticipant.enableCameraAndMicrophone();
+        setLocalTrack(
+          room.localParticipant.videoTrackPublications.values().next().value
+            ?.videoTrack
+        );
+      } catch (error) {
+        console.log(
+          "There was an error joining the room:",
+          (error as Error).message
+        );
+        await leaveRoom();
+      }
+    }
 
   // 방 나가기 함수
   async function leaveRoom() {
@@ -212,75 +282,6 @@ function App() {
   }
 
 
-  // 방 참여 로직
-  async function joinRoom(roomToJoin: string) {
-    setRoomName(roomToJoin);
-    // 새로운 Room 인스턴스 생성
-    const newRoom = new Room();
-    setRoom(newRoom);
-
-    // 방 이벤트 리스너 설정
-    // 새로운 트랙이 수신될 때
-    newRoom.on(
-      RoomEvent.TrackSubscribed,
-      (
-        _track: RemoteTrack,
-        publication: RemoteTrackPublication,
-        participant: RemoteParticipant
-      ) => {
-        // roomCreator가 없을 때만 설정(없어도 될 거 같음)
-        if (!localStorage.getItem('roomCreator')) {
-          localStorage.setItem('roomCreator', participant.identity);
-          setRoomCreator(participant.identity);
-        }
-        setRemoteTracks((prev) => [
-          ...prev,
-          {
-            trackPublication: publication,
-            participantIdentity: participant.identity,
-          },
-        ]);
-      }
-    );
-
-    // 트랙이 소멸될 때
-    newRoom.on(
-      RoomEvent.TrackUnsubscribed,
-      (_track: RemoteTrack, publication: RemoteTrackPublication) => {
-        setRemoteTracks((prev) =>
-          prev.filter(
-            (track) => track.trackPublication.trackSid !== publication.trackSid
-          )
-        );
-      }
-    );
-
-    try {
-      // 방 참여 토큰 발급
-      const rtcTokenResponse = await getToken(roomToJoin, `rtc ${participantName}`);
-      const chatTokenResponse = await getToken(roomToJoin, `chat ${participantName}`);
-      const excalidrawTokenResponse = await getToken(roomToJoin, `excalidraw ${participantName}`);
-
-      setRtcToken(rtcTokenResponse);
-      setChatToken(chatTokenResponse);
-      setExcalidrawToken(excalidrawTokenResponse);
-
-      // 방에 연결
-      await newRoom.connect(LIVEKIT_URL, rtcTokenResponse);
-      
-      await newRoom.localParticipant.enableCameraAndMicrophone();
-      setLocalTrack(
-        newRoom.localParticipant.videoTrackPublications.values().next().value
-          ?.videoTrack
-      );
-    } catch (error) {
-      console.log(
-        "There was an error joining the room:",
-        (error as Error).message
-      );
-      await leaveRoom();
-    }
-  }
 
   // 사용 가능한 방 목록을 가져오는 함수
   async function fetchRoomList() {
@@ -298,8 +299,7 @@ function App() {
 
   // 방 성생 핸들러
   const handleCreateRoom = (selectedRoom: string) => {
-    setRoomName(selectedRoom);
-    createRoom();
+    createRoom(selectedRoom);
   };
 
   // 방 참여 핸들러
