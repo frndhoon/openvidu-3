@@ -1,3 +1,10 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
+
+body {
+  font-family: 'Pretendard', sans-serif;
+}
+
+
 #join {
   display: flex;
   flex-direction: column;
@@ -174,4 +181,290 @@
 .lk-chat-form-button {
   background-color: #007bff !important;
   /* 다른 스타일 */
+}
+
+/* ===== 라이브 목록 스타일 ===== */
+.live-section {
+  margin-top: 30px;
+}
+
+.live-section h2 {
+  font-size: 32px;
+  margin-bottom: 20px;
+}
+
+.live-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.live-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.live-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.live-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.live-badge {
+  background-color: #ff4646;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+
+.live-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.btn-join {
+  background-color: #0088aa;
+  color: white;
+  padding: 8px 20px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+
+.btn-join:hover {
+  background-color: #006688;
+  color: white;
+}
+
+.join-container {
+  min-height: 100vh;
+  padding: 2rem;
+  background-color: #f5f5f5;
+}
+
+.join-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 2rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+}
+
+.user-input-panel {
+  padding: 2rem;
+  border-right: 1px solid #eee;
+}
+
+.input-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.input-group label {
+  font-weight: 500;
+  color: #333;
+}
+
+.input-group input {
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+.create-button {
+  background-color: #4CAF50;
+  color: white;
+  padding: 0.75rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.create-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.live-list-panel {
+  padding: 2rem;
+}
+
+.live-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.live-card {
+  border: 1px solid #eee;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: transform 0.2s;
+}
+
+.live-card:hover {
+  transform: translateY(-2px);
+}
+
+.live-card-content {
+  padding: 1rem;
+}
+
+.live-badge {
+  background-color: #ff4444;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  margin-bottom: 0.5rem;
+  display: inline-block;
+}
+
+.join-button {
+  background-color: #2196F3;
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 1rem;
+  transition: background-color 0.2s;
+}
+
+.join-button:hover {
+  background-color: #1976D2;
+}
+
+.left-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 2rem;
+  border-right: 1px solid #eee;
+}
+
+.section-container {
+  background-color: #ffffff;
+  padding: 1.8rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid #eef2f6;
+  transition: all 0.2s ease;
+}
+
+.section-container:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+/* 사용자 정보 섹션 */
+.section-container:first-child {
+  border-left: 4px solid rgb(0, 0, 0);  /* 보라색 포인트 */
+}
+
+.section-container:first-child h2 {
+  color:rgb(0, 0, 0);
+}
+
+.section-container:first-child .input-group label {
+  color: rgb(0, 0, 0);
+}
+
+/* 방 생성 섹션 */
+.section-container:last-child {
+  border-left: 4px solid #0ea5e9;  /* 하늘색 포인트 */
+}
+
+.section-container:last-child h2 {
+  color: #0ea5e9;
+}
+
+.section-container:last-child .input-group label {
+  color: #0ea5e9;
+}
+
+.section-container h2 {
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.input-group input {
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  background-color: #f8fafc;
+}
+
+.input-group input:focus {
+  outline: none;
+  border-color: #94a3b8;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+}
+
+.create-button {
+  margin-top: 1rem;
+  background: linear-gradient(135deg, #0ea5e9, #2563eb);
+  color: white;
+  padding: 0.75rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.create-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0284c7, #1d4ed8);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+.create-button:disabled {
+  background: #e2e8f0;
+  cursor: not-allowed;
+}
+
+/* 입력 필드 레이블 스타일 개선 */
+.input-group label {
+  font-weight: 500;
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
 }

@@ -314,58 +314,73 @@ function App() {
   return (
     <>
       {!room ? (
-        <div id="join">
-          <div id="join-dialog">
-            <h2>이름 설정</h2>
-            <form>
-              <div>
-                <label htmlFor="participant-name">이름</label>
-                <input
-                  id="participant-name"
-                  className="form-control"
-                  type="text"
-                  value={participantName}
-                  onChange={(e) => setParticipantName(e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <h2>방 생성</h2>
-                <label htmlFor="room-name">방 이름</label>
-                <input
-                  id="room-name"
-                  className="form-control"
-                  type="text"
-                  value={roomName}
-                  onChange={(e) => setRoomName(e.target.value)}
-                  required
-                />
-              </div>
-              <button
-                className="btn btn-lg btn-success"
-                type="submit"
-                disabled={!roomName || !participantName}
-                onClick={() => handleCreateRoom(roomName)}
-              >
-                Create
-              </button>
-              <hr />
-              <div>
-                <h2>라이브 목록</h2>
-                <div className="room-buttons">
-                  {Object.keys(availableRooms).map((room) => (
-                    <button
-                      key={room}
-                      type="button"
-                      className="btn btn-primary"
-                      onClick={() => handleJoinRoom(room)}
-                    >
-                      {room}
-                    </button>
-                  ))}
+        <div className="join-container">
+          <div className="join-content">
+            {/* 왼쪽 패널: 사용자 입력 섹션 */}
+            <div className="left-panel">
+              {/* 사용자 정보 섹션 */}
+              <div className="section-container">
+                <h2>사용자 정보</h2>
+                <div className="input-group">
+                  <label htmlFor="participant-name">참가자 이름</label>
+                  <input
+                    id="participant-name"
+                    type="text"
+                    value={participantName}
+                    onChange={(e) => setParticipantName(e.target.value)}
+                    required
+                  />
                 </div>
               </div>
-            </form>
+
+              {/* 방 생성 섹션 */}
+              <div className="section-container">
+                <h2>방 생성하기</h2>
+                <div className="input-group">
+                  <label htmlFor="room-name">방 이름</label>
+                  <input
+                    id="room-name"
+                    type="text"
+                    value={roomName}
+                    onChange={(e) => setRoomName(e.target.value)}
+                    required
+                  />
+                </div>
+                
+                <button
+                  className="create-button"
+                  type="button"
+                  disabled={!roomName || !participantName}
+                  onClick={() => handleCreateRoom(roomName)}
+                >
+                  방 만들기
+                </button>
+              </div>
+            </div>
+
+            {/* 오른쪽 패널: 라이브 목록 섹션 */}
+            <div className="live-list-panel">
+              <h2>현재 진행중인 라이브</h2>
+              <div className="live-list">
+                {Object.keys(availableRooms).map((room) => (
+                  <div key={room} className="live-card">
+                    <div className="live-card-content">
+                      <div className="live-info">
+                        <span className="live-badge">LIVE</span>
+                        <h3>{room}</h3>
+                      </div>
+                      <button
+                        type="button"
+                        className="join-button"
+                        onClick={() => handleJoinRoom(room)}
+                      >
+                        참여하기
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       ) : (
