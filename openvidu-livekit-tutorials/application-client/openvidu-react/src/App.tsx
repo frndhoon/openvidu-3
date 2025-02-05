@@ -22,7 +22,6 @@ type TrackInfo = {
 // For other deployment type, configure them with correct URLs depending on your deployment
 let APPLICATION_SERVER_URL = "https://jaemoon99.site:15555/"; 
 let LIVEKIT_URL = "wss://jaemoon99.site:7443/";
-let accessToken = "";
 
 // configureUrls();
 
@@ -71,6 +70,11 @@ function App() {
     return localStorage.getItem('roomCreator');
   });
 
+  // 토큰 상태
+  const [rtcToken, setRtcToken] = useState<string>(''); // 비디오/오디오 스트리밍을 위한 토큰
+  const [chatToken, setChatToken] = useState<string>(''); // 채팅 기능을 위한 토큰
+  const [excalidrawToken, setExcalidrawToken] = useState<string>(''); // 그림 툴 기능을 위한 토큰
+
   useEffect(() => {
     fetchRoomList();
   }, []); 
@@ -115,13 +119,21 @@ function App() {
     );
 
     try {
-      // Get a token from your application server with the room name and participant name
-      const token = await getToken(roomName, participantName);
-      console.log("rtc token : ", token);
-      accessToken = await getToken(roomName, `ssp ${participantName}`);
-      console.log("chat token : ", accessToken);
-      // Connect to the room with the LiveKit URL and the token
-      await room.connect(LIVEKIT_URL, token);
+      // 토큰 발급 로직
+      const rtcTokenResponse = await getToken(roomName, `rtc ${participantName}`);
+      const chatTokenResponse = await getToken(roomName, `chat ${participantName}`);
+      const excalidrawTokenResponse = await getToken(roomName, `excalidraw ${participantName}`);
+
+      setRtcToken(rtcTokenResponse);
+      setChatToken(chatTokenResponse);
+      setExcalidrawToken(excalidrawTokenResponse);
+
+      console.log("RTC Token (rtc):", rtcTokenResponse);
+      console.log("Chat Token (chat):", chatTokenResponse);
+      console.log("Excalidraw Token (excalidraw):", excalidrawTokenResponse);
+
+      // 방에 연결
+      await room.connect(LIVEKIT_URL, rtcTokenResponse);
 
       // Publish your camera and microphone
       await room.localParticipant.enableCameraAndMicrophone();
@@ -229,30 +241,17 @@ function App() {
     );
 
     try {
-      // Get tokens for joining the room
-      const response = await fetch(APPLICATION_SERVER_URL + "join", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          roomName: roomToJoin,
-          participantName: participantName,
-        }),
-      });
+      // Get tokens for joining the room with prefixes
+      const rtcTokenResponse = await getToken(roomToJoin, `rtc ${participantName}`);
+      const chatTokenResponse = await getToken(roomToJoin, `chat ${participantName}`);
+      const excalidrawTokenResponse = await getToken(roomToJoin, `excalidraw ${participantName}`);
 
-      if (!response.ok) {
-        throw new Error('Failed to join room');
-      }
+      setRtcToken(rtcTokenResponse);
+      setChatToken(chatTokenResponse);
+      setExcalidrawToken(excalidrawTokenResponse);
 
-      const data = await response.json();
-      const token = data.token;
-      
-      // Get chat token
-      accessToken = await getToken(roomToJoin, `ssp ${participantName}`);
-      
       // Connect to the room
-      await newRoom.connect(LIVEKIT_URL, token);
+      await newRoom.connect(LIVEKIT_URL, rtcTokenResponse);
       
       await newRoom.localParticipant.enableCameraAndMicrophone();
       setLocalTrack(
@@ -393,7 +392,7 @@ function App() {
           </div>
           <LiveKitRoom
             serverUrl={LIVEKIT_URL}
-            token={accessToken}
+            token={chatToken}
             connect={true}
           >
             <Chat />
