@@ -13,13 +13,17 @@ import { useState, useEffect } from "react";
 import VideoComponent from "./components/VideoComponent";
 import AudioComponent from "./components/AudioComponent";
 
+// 트랙 정보를 저장하기 위한 타입 정의
+// trackPublication: 원격 트랙 정보를 담고 있는 객체
+// participantIdentity: 참가자의 고유 식별자
 type TrackInfo = {
   trackPublication: RemoteTrackPublication;
   participantIdentity: string;
 };
 
-// When running OpenVidu locally, leave these variables empty
-// For other deployment type, configure them with correct URLs depending on your deployment
+// 서버 URL 설정
+// APPLICATION_SERVER_URL: 토큰 발급 등 백엔드 서비스를 제공하는 서버 주소
+// LIVEKIT_URL: WebRTC 연결을 위한 LiveKit 서버 주소
 let APPLICATION_SERVER_URL = "https://jaemoon99.site:15555/"; 
 let LIVEKIT_URL = "wss://jaemoon99.site:7443/";
 
@@ -51,59 +55,55 @@ let LIVEKIT_URL = "wss://jaemoon99.site:7443/";
 // }
 
 function App() {
-  // 방 상태
-  const [room, setRoom] = useState<Room | undefined>(undefined);
-  // 로컬 트랙 상태
-  const [localTrack, setLocalTrack] = useState<LocalVideoTrack | undefined>(
+  const [room, setRoom] = useState<Room | undefined>(undefined);              // 현재 접속한 방 정보
+  const [localTrack, setLocalTrack] = useState<LocalVideoTrack | undefined>( // 로컬 사용자의 비디오 트랙
     undefined
   );
-  // 원격 트랙 상태
-  const [remoteTracks, setRemoteTracks] = useState<TrackInfo[]>([]);
+  const [remoteTracks, setRemoteTracks] = useState<TrackInfo[]>([]);         // 원격 참가자들의 트랙 정보
 
-  // 참여자 이름 상태
-  // 추후 이건 userData.nickname으로 받아올 것(input은 따로 없음)
+  // 참가자 이름 - 랜덤 번호를 붙여서 생성(추후 userData.nickname 값으로 변경 예정)
   const [participantName, setParticipantName] = useState(
     "Participant" + Math.floor(Math.random() * 100)
   );
 
-  // 방 이름 상태
-  // 추후 이건 강의 이름 혹은 random 값으로 받아올 예정
-  const [roomName, setRoomName] = useState("");
+  
+  // 추후 강의 이름 혹은 random 값으로 받아올 예정
+  const [roomName, setRoomName] = useState(""); // 현재 방 이름
 
-  // 사용 가능한 방 상태
-  // "방 이름": "rtc 방장이름(token 값임)"
+  // "방 이름": "rtc 방장이름(token 값)"
   // {
   //   "123": "rtc Participant16",
   //   "test": "rtc Participant74",
   //   "1223": "rtc Participant42",
   //   "4234": "rtc Participant93"
   // }
-  const [availableRooms, setAvailableRooms] = useState<string[]>([]);
+  const [availableRooms, setAvailableRooms] = useState<string[]>([]); // 사용 가능한 방 목록
   
-  // roomCreatorRef를 useState로 변경
+  // 방장 정보는 로컬 스토리지에서 관리
   const [roomCreator, setRoomCreator] = useState<string | null>(() => {
     return localStorage.getItem('roomCreator');
   });
 
-  // 토큰 상태
-  const [rtcToken, setRtcToken] = useState<string>(''); // 비디오/오디오 스트리밍을 위한 토큰
-  const [chatToken, setChatToken] = useState<string>(''); // 채팅 기능을 위한 토큰
-  const [excalidrawToken, setExcalidrawToken] = useState<string>(''); // 그림 툴 기능을 위한 토큰
+  // 각각의 기능별 토큰 상태 관리
+  const [rtcToken, setRtcToken] = useState<string>('');                     // 비디오/오디오 스트리밍용 토큰
+  const [chatToken, setChatToken] = useState<string>('');                   // 채팅 기능용 토큰
+  const [excalidrawToken, setExcalidrawToken] = useState<string>('');      // 화이트보드 기능용 토큰
 
   useEffect(() => {
     fetchRoomList();
   }, []); 
 
-  // 방 생성 로직
+  // 방 생성 함수
   async function createRoom() {
+    // 새로운 Room 인스턴스 생성
     const room = new Room();
     setRoom(room);
     // 방장 정보를 localStorage에 저장
     localStorage.setItem('roomCreator', participantName);
     setRoomCreator(participantName);
 
-    // Specify the actions when events take place in the room
-    // On every new Track received...
+    // 방 이벤트 리스너 설정
+    // TrackSubscribed: 새로운 트랙이 구독될 때 실행
     room.on(
       RoomEvent.TrackSubscribed,
       (
@@ -121,7 +121,7 @@ function App() {
       }
     );
 
-    // On every Track destroyed...
+    // TrackUnsubscribed: 트랙 구독이 해제될 때 실행
     room.on(
       RoomEvent.TrackUnsubscribed,
       (_track: RemoteTrack, publication: RemoteTrackPublication) => {
@@ -150,7 +150,7 @@ function App() {
       // 방에 연결
       await room.connect(LIVEKIT_URL, rtcTokenResponse);
 
-      // Publish your camera and microphone
+      // 카메라와 마이크 활성화
       await room.localParticipant.enableCameraAndMicrophone();
       setLocalTrack(
         room.localParticipant.videoTrackPublications.values().next().value
@@ -165,15 +165,15 @@ function App() {
     }
   }
 
-  // 방 나가기 로직
+
+  // 방 나가기 함수
   async function leaveRoom() {
-    await room?.disconnect();
-    // 방을 나갈 때 roomCreator 정보 삭제
-    localStorage.removeItem('roomCreator');
+    await room?.disconnect();                    // 방 연결 해제
+    localStorage.removeItem('roomCreator');      // 방장 정보 삭제
     setRoomCreator(null);
     setRoom(undefined);
     setLocalTrack(undefined);
-    setRemoteTracks([]);
+    setRemoteTracks([]);                        // 모든 상태 초기화
   }
 
   /**
@@ -184,11 +184,11 @@ function App() {
    * 이를 통해 LiveKit API 키와 시크릿을 클라이언트 측에 노출할 
    * 필요가 없어집니다.
    * 
-   * 이 샘플 코드에서는 사용자 제어가 전혀 없습니다. 누구나
-   * 애플리케이션 서버 엔드포인트에 접근할 수 있습니다. 실제 프로덕션
-   * 환경에서는 애플리케이션 서버가 엔드포인트 접근을 허용하기 위해
-   * 사용자를 식별해야 합니다.
+   * 이 샘플 코드에서는 사용자 제어가 전혀 없습니다.
+   * 누구나 애플리케이션 서버 엔드포인트에 접근할 수 있습니다.
+   * 실제 프로덕션 환경에서는 애플리케이션 서버가 엔드포인트 접근을 허용하기 위해 사용자를 식별해야 합니다.
    */
+
   // 토큰 발급 로직
   async function getToken(roomName: string, participantName: string) {
     const response = await fetch(APPLICATION_SERVER_URL + "token", {
@@ -215,12 +215,12 @@ function App() {
   // 방 참여 로직
   async function joinRoom(roomToJoin: string) {
     setRoomName(roomToJoin);
-    // Initialize a new Room object
+    // 새로운 Room 인스턴스 생성
     const newRoom = new Room();
     setRoom(newRoom);
 
-    // Specify the actions when events take place in the room
-    // On every new Track received...
+    // 방 이벤트 리스너 설정
+    // 새로운 트랙이 수신될 때
     newRoom.on(
       RoomEvent.TrackSubscribed,
       (
@@ -228,7 +228,7 @@ function App() {
         publication: RemoteTrackPublication,
         participant: RemoteParticipant
       ) => {
-        // roomCreator가 없을 때만 설정
+        // roomCreator가 없을 때만 설정(없어도 될 거 같음)
         if (!localStorage.getItem('roomCreator')) {
           localStorage.setItem('roomCreator', participant.identity);
           setRoomCreator(participant.identity);
@@ -243,7 +243,7 @@ function App() {
       }
     );
 
-    // On every Track destroyed...
+    // 트랙이 소멸될 때
     newRoom.on(
       RoomEvent.TrackUnsubscribed,
       (_track: RemoteTrack, publication: RemoteTrackPublication) => {
@@ -256,7 +256,7 @@ function App() {
     );
 
     try {
-      // Get tokens for joining the room with prefixes
+      // 방 참여 토큰 발급
       const rtcTokenResponse = await getToken(roomToJoin, `rtc ${participantName}`);
       const chatTokenResponse = await getToken(roomToJoin, `chat ${participantName}`);
       const excalidrawTokenResponse = await getToken(roomToJoin, `excalidraw ${participantName}`);
@@ -265,7 +265,7 @@ function App() {
       setChatToken(chatTokenResponse);
       setExcalidrawToken(excalidrawTokenResponse);
 
-      // Connect to the room
+      // 방에 연결
       await newRoom.connect(LIVEKIT_URL, rtcTokenResponse);
       
       await newRoom.localParticipant.enableCameraAndMicrophone();
@@ -325,7 +325,6 @@ function App() {
                   required
                 />
               </div>
-              {/* 직접 입력 또는 선택 */}
               <div>
                 <h2>방 생성</h2>
                 <label htmlFor="room-name">방 이름</label>
