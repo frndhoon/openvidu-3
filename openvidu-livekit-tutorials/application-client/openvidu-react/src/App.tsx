@@ -12,6 +12,7 @@ import "./App.css";
 import { useState, useEffect } from "react";
 import VideoComponent from "./components/VideoComponent";
 import AudioComponent from "./components/AudioComponent";
+import { Excalidraw } from "@excalidraw/excalidraw";
 
 // 트랙 정보를 저장하기 위한 타입 정의
 // trackPublication: 원격 트랙 정보를 담고 있는 객체
@@ -313,7 +314,7 @@ function App() {
 
   return (
     <>
-      {!room ? (
+      {!room ? (          
         <div className="join-container">
           <div className="join-content">
             {/* 왼쪽 패널: 사용자 입력 섹션 */}
@@ -423,6 +424,7 @@ function App() {
                 )
             )}
           </div>
+          {/* 채팅 컴포넌트 */}
           <LiveKitRoom
             serverUrl={LIVEKIT_URL}
             token={chatToken}
@@ -430,6 +432,16 @@ function App() {
           >
             <Chat />
           </LiveKitRoom>
+          {/* Excalidraw 컴포넌트 */}
+          <div className="excalidraw-container">
+          <LiveKitRoom
+            serverUrl={LIVEKIT_URL}
+            token={excalidrawToken}
+            connect={true}
+          >
+            <Excalidraw />
+          </LiveKitRoom>
+          </div>
         </div>
       )}
     </>
