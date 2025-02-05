@@ -51,18 +51,33 @@ let LIVEKIT_URL = "wss://jaemoon99.site:7443/";
 // }
 
 function App() {
+  // 방 상태
   const [room, setRoom] = useState<Room | undefined>(undefined);
+  // 로컬 트랙 상태
   const [localTrack, setLocalTrack] = useState<LocalVideoTrack | undefined>(
     undefined
   );
+  // 원격 트랙 상태
   const [remoteTracks, setRemoteTracks] = useState<TrackInfo[]>([]);
 
+  // 참여자 이름 상태
   // 추후 이건 userData.nickname으로 받아올 것(input은 따로 없음)
   const [participantName, setParticipantName] = useState(
     "Participant" + Math.floor(Math.random() * 100)
   );
+
+  // 방 이름 상태
   // 추후 이건 강의 이름 혹은 random 값으로 받아올 예정
   const [roomName, setRoomName] = useState("");
+
+  // 사용 가능한 방 상태
+  // "방 이름": "rtc 방장이름(token 값임)"
+  // {
+  //   "123": "rtc Participant16",
+  //   "test": "rtc Participant74",
+  //   "1223": "rtc Participant42",
+  //   "4234": "rtc Participant93"
+  // }
   const [availableRooms, setAvailableRooms] = useState<string[]>([]);
   
   // roomCreatorRef를 useState로 변경
@@ -120,17 +135,17 @@ function App() {
 
     try {
       // 토큰 발급 로직
-      const rtcTokenResponse = await getToken(roomName, `rtc ${participantName}`);
       const chatTokenResponse = await getToken(roomName, `chat ${participantName}`);
       const excalidrawTokenResponse = await getToken(roomName, `excalidraw ${participantName}`);
+      const rtcTokenResponse = await getToken(roomName, `rtc ${participantName}`);
 
-      setRtcToken(rtcTokenResponse);
       setChatToken(chatTokenResponse);
       setExcalidrawToken(excalidrawTokenResponse);
+      setRtcToken(rtcTokenResponse);
 
-      console.log("RTC Token (rtc):", rtcTokenResponse);
       console.log("Chat Token (chat):", chatTokenResponse);
       console.log("Excalidraw Token (excalidraw):", excalidrawTokenResponse);
+      console.log("RTC Token (rtc):", rtcTokenResponse);
 
       // 방에 연결
       await room.connect(LIVEKIT_URL, rtcTokenResponse);
