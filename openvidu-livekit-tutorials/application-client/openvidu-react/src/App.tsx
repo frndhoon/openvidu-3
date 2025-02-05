@@ -63,7 +63,7 @@ function App() {
     "Participant" + Math.floor(Math.random() * 100)
   );
   // 추후 이건 강의 이름 혹은 random 값으로 받아올 예정
-  const [roomName, setRoomName] = useState("Test Room");
+  const [roomName, setRoomName] = useState("");
   const [availableRooms, setAvailableRooms] = useState<string[]>([]);
   
   // roomCreatorRef를 useState로 변경
@@ -298,11 +298,10 @@ function App() {
       {!room ? (
         <div id="join">
           <div id="join-dialog">
-            <h2>Join a Video Room</h2>
-            <form
-            >
+            <h2>이름 설정</h2>
+            <form>
               <div>
-                <label htmlFor="participant-name">Participant</label>
+                <label htmlFor="participant-name">이름</label>
                 <input
                   id="participant-name"
                   className="form-control"
@@ -312,10 +311,10 @@ function App() {
                   required
                 />
               </div>
-
               {/* 직접 입력 또는 선택 */}
               <div>
-                <label htmlFor="room-name">Room</label>
+                <h2>방 생성</h2>
+                <label htmlFor="room-name">방 이름</label>
                 <input
                   id="room-name"
                   className="form-control"
@@ -325,24 +324,6 @@ function App() {
                   required
                 />
               </div>
-
-              <div>
-                <h2>라이브 목록</h2>
-                <hr />
-                <div className="room-buttons">
-                  {Object.keys(availableRooms).map((room) => (
-                    <button
-                      key={room}
-                      type="button"
-                      className={`btn ${roomName === room ? 'btn-primary' : 'btn-secondary'}`}
-                      onClick={() => handleJoinRoom(room)}
-                    >
-                      {room}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               <button
                 className="btn btn-lg btn-success"
                 type="submit"
@@ -351,6 +332,22 @@ function App() {
               >
                 Create
               </button>
+              <hr />
+              <div>
+                <h2>라이브 목록</h2>
+                <div className="room-buttons">
+                  {Object.keys(availableRooms).map((room) => (
+                    <button
+                      key={room}
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => handleJoinRoom(room)}
+                    >
+                      {room}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </form>
           </div>
         </div>
