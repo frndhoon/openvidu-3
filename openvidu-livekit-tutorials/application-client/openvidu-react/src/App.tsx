@@ -97,15 +97,13 @@ function App() {
   // 방 생성 함수
   async function createRoom(roomName: string) {
     setRoomName(roomName);
-    // 새로운 Room 인스턴스 생성
     const room = new Room();
     setRoom(room);
-    // 방장 정보를 localStorage에 저장
+    
+    // 방장 정보 저장 시 'rtc ' 접두사 없이 저장
     localStorage.setItem('roomCreator', participantName);
     setRoomCreator(participantName);
 
-    // 방 이벤트 리스너 설정
-    // TrackSubscribed: 새로운 트랙이 구독될 때 실행
     room.on(
       RoomEvent.TrackSubscribed,
       (
@@ -117,7 +115,7 @@ function App() {
           ...prev,
           {
             trackPublication: publication,
-            participantIdentity: participant.identity,
+            participantIdentity: participant.identity.replace('rtc ', ''), // 여기서도 'rtc ' 접두사 제거
           },
         ]);
       }
@@ -183,16 +181,16 @@ function App() {
           publication: RemoteTrackPublication,
           participant: RemoteParticipant
         ) => {
-          // roomCreator가 없을 때만 설정(없어도 될 거 같음)
           if (!localStorage.getItem('roomCreator')) {
-            localStorage.setItem('roomCreator', participant.identity);
-            setRoomCreator(participant.identity);
+            const creatorIdentity = participant.identity.replace('rtc ', '');
+            localStorage.setItem('roomCreator', creatorIdentity);
+            setRoomCreator(creatorIdentity);
           }
           setRemoteTracks((prev) => [
             ...prev,
             {
               trackPublication: publication,
-              participantIdentity: participant.identity,
+              participantIdentity: participant.identity.replace('rtc ', ''),
             },
           ]);
         }
@@ -407,21 +405,28 @@ function App() {
               />
             )}
             {/* 참여자일 때는 방장의 비디오만 표시 */}
-            {roomCreator !== participantName && remoteTracks
-              .filter(track => track.participantIdentity === roomCreator)
-              .map((remoteTrack) =>
-                remoteTrack.trackPublication.kind === "video" ? (
-                  <VideoComponent
-                    key={remoteTrack.trackPublication.trackSid}
-                    track={remoteTrack.trackPublication.videoTrack!}
-                    participantIdentity={remoteTrack.participantIdentity}
-                  />
-                ) : (
-                  <AudioComponent
-                    key={remoteTrack.trackPublication.trackSid}
-                    track={remoteTrack.trackPublication.audioTrack!}
-                  />
-                )
+            {roomCreator !== participantName && remoteTracks.length > 0 && (
+              <div>
+                {remoteTracks
+                  .filter(track => {
+                    const trackParticipantWithoutPrefix = track.participantIdentity.replace('rtc ', '');
+                    return trackParticipantWithoutPrefix === roomCreator;
+                  })
+                  .map((remoteTrack) =>
+                    remoteTrack.trackPublication.kind === "video" ? (
+                      <VideoComponent
+                        key={remoteTrack.trackPublication.trackSid}
+                        track={remoteTrack.trackPublication.videoTrack!}
+                        participantIdentity={remoteTrack.participantIdentity}
+                      />
+                    ) : (
+                      <AudioComponent
+                        key={remoteTrack.trackPublication.trackSid}
+                        track={remoteTrack.trackPublication.audioTrack!}
+                      />
+                    )
+                )}
+              </div>
             )}
           </div>
           {/* 채팅 컴포넌트 */}
@@ -433,15 +438,6 @@ function App() {
             <Chat />
           </LiveKitRoom>
           {/* Excalidraw 컴포넌트 */}
-          <div className="excalidraw-container">
-          <LiveKitRoom
-            serverUrl={LIVEKIT_URL}
-            token={excalidrawToken}
-            connect={true}
-          >
-            <Excalidraw />
-          </LiveKitRoom>
-          </div>
         </div>
       )}
     </>
