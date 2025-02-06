@@ -150,14 +150,14 @@ function App() {
       RoomEvent.TrackSubscribed,
       (
         _track: RemoteTrack,
-        publication: RemoteTrackPublication,
-        participant: RemoteParticipant
+        publication: RemoteTrackPublication, // 원격 트랙 정보
+        participant: RemoteParticipant // 참가자 식별자
       ) => {
         setRemoteTracks((prev) => [
           ...prev,
           {
             trackPublication: publication,
-            participantIdentity: participant.identity.replace('rtc ', ''), // 여기서도 'rtc ' 접두사 제거
+            participantIdentity: participant.identity
           },
         ]);
       }
@@ -220,11 +220,11 @@ function App() {
         RoomEvent.TrackSubscribed,
         (
           _track: RemoteTrack,
-          publication: RemoteTrackPublication,
-          participant: RemoteParticipant
+          publication: RemoteTrackPublication, // 원격 트랙 정보
+          participant: RemoteParticipant // 참가자 식별자
         ) => {
           if (!localStorage.getItem('roomCreator')) {
-            const creatorIdentity = participant.identity.replace('rtc ', '');
+            const creatorIdentity = participant.identity;
             localStorage.setItem('roomCreator', creatorIdentity);
             setRoomCreator(creatorIdentity);
           }
@@ -232,7 +232,7 @@ function App() {
             ...prev,
             {
               trackPublication: publication,
-              participantIdentity: participant.identity.replace('rtc ', ''),
+              participantIdentity: participant.identity,
             },
           ]);
         }
@@ -450,16 +450,13 @@ function App() {
             {roomCreator !== participantName && remoteTracks.length > 0 && (
               <div>
                 {remoteTracks
-                  .filter(track => {
-                    const trackParticipantWithoutPrefix = track.participantIdentity.replace('rtc ', '');
-                    return trackParticipantWithoutPrefix === roomCreator;
-                  })
-                  .map((remoteTrack) =>
+                  .filter(track => track.participantIdentity === `rtc ${roomCreator}`) // rtc 토큰 접두사 필터링
+                  .map((remoteTrack) => (
                     remoteTrack.trackPublication.kind === "video" ? (
                       <VideoComponent
                         key={remoteTrack.trackPublication.trackSid}
                         track={remoteTrack.trackPublication.videoTrack!}
-                        participantIdentity={remoteTrack.participantIdentity}
+                        participantIdentity={remoteTrack.participantIdentity.replace('rtc ', '')} // rtc 토큰 접두사 제거
                       />
                     ) : (
                       <AudioComponent
@@ -467,7 +464,7 @@ function App() {
                         track={remoteTrack.trackPublication.audioTrack!}
                       />
                     )
-                )}
+                  ))}
               </div>
             )}
           </div>
