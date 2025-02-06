@@ -12,7 +12,8 @@ import "./App.css";
 import { useState, useEffect } from "react";
 import VideoComponent from "./components/VideoComponent";
 import AudioComponent from "./components/AudioComponent";
-import { Excalidraw } from "@excalidraw/excalidraw";
+import { Excalidraw } from '@excalidraw/excalidraw';
+import io from 'socket.io-client';
 
 // 트랙 정보를 저장하기 위한 타입 정의
 // trackPublication: 원격 트랙 정보를 담고 있는 객체
@@ -27,6 +28,9 @@ type TrackInfo = {
 // LIVEKIT_URL: WebRTC 연결을 위한 LiveKit 서버 주소
 let APPLICATION_SERVER_URL = "https://jaemoon99.site:15555/"; 
 let LIVEKIT_URL = "wss://jaemoon99.site:7443/";
+// let LIVEKIT_URL = "wss://www.grimtalk.com:7443/";
+// let APPLICATION_SERVER_URL = "http://localhost:5555/";
+// let LIVEKIT_URL = "ws://localhost:7880/";
 
 // configureUrls();
 
@@ -54,6 +58,12 @@ let LIVEKIT_URL = "wss://jaemoon99.site:7443/";
 //     // LIVEKIT_URL = "wss://jaemoon99.site:7443/";
 //   }
 // }
+
+// WebSocket 서버 URL 추가
+const WEBSOCKET_URL = 'wss://jaemoon99.site:28080/ws';
+const socket = io(WEBSOCKET_URL, {
+  withCredentials: true,
+});
 
 function App() {
   const [room, setRoom] = useState<Room | undefined>(undefined);              // 현재 접속한 방 정보
@@ -90,9 +100,41 @@ function App() {
   const [chatToken, setChatToken] = useState<string>('');                   // 채팅 기능용 토큰
   const [excalidrawToken, setExcalidrawToken] = useState<string>('');      // 화이트보드 기능용 토큰
 
+  // Excalidraw 관련 상태 추가
+  const [leftElements, setLeftElements] = useState([]);
+  const [rightElements, setRightElements] = useState([]);
+  const [isLeftBoard, setIsLeftBoard] = useState(true);
+  const [leftExcalidrawAPI, setLeftExcalidrawAPI] = useState(null);
+  const [rightExcalidrawAPI, setRightExcalidrawAPI] = useState(null);
+
   useEffect(() => {
     fetchRoomList();
   }, []); 
+
+  // Excalidraw 웹소켓 이벤트 리스너 설정
+  useEffect(() => {
+    socket.on('assignBoard', (board) => {
+      setIsLeftBoard(board === 'left');
+    });
+
+    socket.on('updateLeftBoard', (elements) => {
+      if (!isLeftBoard) {
+        setLeftElements(elements);
+      }
+    });
+
+    socket.on('updateRightBoard', (elements) => {
+      if (isLeftBoard) {
+        setRightElements(elements);
+      }
+    });
+
+    return () => {
+      socket.off('assignBoard');
+      socket.off('updateLeftBoard');
+      socket.off('updateRightBoard');
+    };
+  }, [isLeftBoard]);
 
   // 방 생성 함수
   async function createRoom(roomName: string) {
@@ -438,10 +480,50 @@ function App() {
             <Chat />
           </LiveKitRoom>
           {/* Excalidraw 컴포넌트 */}
+          {/* <div className="excalidraw-container">
+          <LiveKitRoom
+            serverUrl={LIVEKIT_URL}
+            token={excalidrawToken}
+            connect={true}
+          >
+            <Excalidraw />
+          </LiveKitRoom>
+          </div> */}
+          {/* Excalidraw 컴포넌트 */}
+          <div className="whiteboard-container">
+            <div className="excalidraw-wrapper">
+              {isLeftBoard ? (
+                <Excalidraw
+                  onChange={(elements: any) => {
+                    setLeftElements(elements);
+                    socket.emit('updateLeftBoard', elements);
+                  }}
+                  elements={leftElements}
+                  excalidrawAPI={(api: any) => setLeftExcalidrawAPI(api)}
+                />
+              ) : (
+                <Excalidraw
+                  onChange={(elements: any) => {
+                    setRightElements(elements);
+                    socket.emit('updateRightBoard', elements);
+                  }}
+                  elements={rightElements}
+                  excalidrawAPI={(api: any) => setRightExcalidrawAPI(api)}
+                />
+              )}
+            </div>
+          </div> 
         </div>
+
+
+
       )}
     </>
   );
 }
+
+
+
+
 
 export default App;
