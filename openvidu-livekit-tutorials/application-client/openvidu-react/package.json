@@ -13,6 +13,7 @@
     "@excalidraw/excalidraw": "^0.17.6",
     "@livekit/components-react": "^2.8.1",
     "@livekit/components-styles": "^1.1.4",
+    "@stomp/stompjs": "^7.0.0",
     "livekit-client": "^2.8.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
