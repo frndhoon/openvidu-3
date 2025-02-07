@@ -9,11 +9,11 @@ import {
 import { LiveKitRoom } from "./custom-livekit/src/components/LiveKitRoom";
 import { Chat } from "./custom-livekit/src/prefabs/Chat";
 import "./App.css";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import VideoComponent from "./components/VideoComponent";
 import AudioComponent from "./components/AudioComponent";
 import { Excalidraw } from '@excalidraw/excalidraw';
-import io from 'socket.io-client';
+import { Client } from '@stomp/stompjs'
 
 // 트랙 정보를 저장하기 위한 타입 정의
 // trackPublication: 원격 트랙 정보를 담고 있는 객체
@@ -59,12 +59,6 @@ let LIVEKIT_URL = "wss://jaemoon99.site:7443/";
 //   }
 // }
 
-// WebSocket 서버 URL 추가
-const WEBSOCKET_URL = 'wss://jaemoon99.site:28080/ws';
-const socket = io(WEBSOCKET_URL, {
-  withCredentials: true,
-});
-
 function App() {
   const [room, setRoom] = useState<Room | undefined>(undefined);              // 현재 접속한 방 정보
   const [localTrack, setLocalTrack] = useState<LocalVideoTrack | undefined>( // 로컬 사용자의 비디오 트랙
@@ -98,7 +92,6 @@ function App() {
   // 각각의 기능별 토큰 상태 관리
   const [rtcToken, setRtcToken] = useState<string>('');                     // 비디오/오디오 스트리밍용 토큰
   const [chatToken, setChatToken] = useState<string>('');                   // 채팅 기능용 토큰
-  const [excalidrawToken, setExcalidrawToken] = useState<string>('');      // 화이트보드 기능용 토큰
 
   // Excalidraw 관련 상태 추가
   const [leftElements, setLeftElements] = useState([]);
@@ -107,34 +100,91 @@ function App() {
   const [leftExcalidrawAPI, setLeftExcalidrawAPI] = useState(null);
   const [rightExcalidrawAPI, setRightExcalidrawAPI] = useState(null);
 
-  useEffect(() => {
-    fetchRoomList();
-  }, []); 
+  
+// STOMP 클라이언트 설정
+const [stompClient, setStompClient] = useState<Client | null>(null);
+const [isConnected, setIsConnected] = useState(false);
 
-  // Excalidraw 웹소켓 이벤트 리스너 설정
-  useEffect(() => {
-    socket.on('assignBoard', (board) => {
-      setIsLeftBoard(board === 'left');
-    });
+// STOMP 연결 설정
+useEffect(() => {
+  const client = new Client({
+    brokerURL: 'wss://jaemoon99.site:28080/ws',
+    onConnect: () => {
+      setIsConnected(true);
+      console.log('Connected to STOMP');
+    },
+    onDisconnect: () => {
+      setIsConnected(false);
+      console.log('Disconnected from STOMP');
+    }
+  });
 
-    socket.on('updateLeftBoard', (elements) => {
-      if (!isLeftBoard) {
-        setLeftElements(elements);
-      }
-    });
+  try {
+    client.activate();
+    setStompClient(client);
+  } catch (error) {
+    console.error('STOMP connection failed:', error);
+  }
 
-    socket.on('updateRightBoard', (elements) => {
-      if (isLeftBoard) {
-        setRightElements(elements);
+  return () => {
+    if (client.active) {
+      client.deactivate();
+    }
+  };
+}, []);
+
+// STOMP 구독 설정
+useEffect(() => {
+  if (stompClient && isConnected) {
+    const subscription = stompClient.subscribe('/topic/greetings', (message) => {
+      const data = JSON.parse(message.body);
+      console.log('Received data:', data); // 데이터 수신 확인
+
+      if (data.type === 'excalidraw') {
+        if (data.boardType === 'left' && roomCreator !== participantName) {
+          console.log('Updating left board:', data.elements);
+          setLeftElements([...data.elements]); // 배열 복사하여 상태 업데이트
+          if (leftExcalidrawAPI) {
+            leftExcalidrawAPI.updateScene({ elements: data.elements }); // API를 통한 즉시 업데이트
+          }
+        } else if (data.boardType === 'right' && roomCreator === participantName) {
+          console.log('Updating right board:', data.elements);
+          setRightElements([...data.elements]); // 배열 복사하여 상태 업데이트
+          if (rightExcalidrawAPI) {
+            rightExcalidrawAPI.updateScene({ elements: data.elements }); // API를 통한 즉시 업데이트
+          }
+        }
       }
     });
 
     return () => {
-      socket.off('assignBoard');
-      socket.off('updateLeftBoard');
-      socket.off('updateRightBoard');
+      subscription.unsubscribe();
     };
-  }, [isLeftBoard]);
+  }
+}, [stompClient, isConnected, roomCreator, participantName, leftExcalidrawAPI, rightExcalidrawAPI]);
+
+// 화이트보드 업데이트 함수
+const updateBoard = useCallback((elements: any, boardType: 'left' | 'right') => {
+  if (stompClient?.active && isConnected) {
+    try {
+      stompClient.publish({
+        destination: '/app/hello',
+        body: JSON.stringify({
+          type: 'excalidraw',
+          boardType: boardType,
+          elements: elements,
+          sender: participantName
+        })
+      });
+    } catch (error) {
+      console.error('Failed to send Excalidraw data:', error);
+    }
+  }
+}, [stompClient, isConnected, participantName]);
+
+  useEffect(() => {
+    fetchRoomList();
+  }, []); 
 
   // 방 생성 함수
   async function createRoom(roomName: string) {
@@ -182,7 +232,6 @@ function App() {
       const rtcTokenResponse = await getToken(roomName, `rtc ${participantName}`);
 
       setChatToken(chatTokenResponse);
-      setExcalidrawToken(excalidrawTokenResponse);
       setRtcToken(rtcTokenResponse);
 
       console.log("Chat Token (chat):", chatTokenResponse);
@@ -258,7 +307,6 @@ function App() {
   
         setRtcToken(rtcTokenResponse);
         setChatToken(chatTokenResponse);
-        setExcalidrawToken(excalidrawTokenResponse);
   
         // 방에 연결
         await room.connect(LIVEKIT_URL, rtcTokenResponse);
@@ -477,43 +525,49 @@ function App() {
             <Chat />
           </LiveKitRoom>
           {/* Excalidraw 컴포넌트 */}
-          {/* <div className="excalidraw-container">
-          <LiveKitRoom
-            serverUrl={LIVEKIT_URL}
-            token={excalidrawToken}
-            connect={true}
-          >
-            <Excalidraw />
-          </LiveKitRoom>
-          </div> */}
-          {/* Excalidraw 컴포넌트 */}
-          <div className="whiteboard-container">
-            <div className="excalidraw-wrapper">
-              {isLeftBoard ? (
-                <Excalidraw
-                  onChange={(elements: any) => {
+          <div className="whiteboard-container" style={{ display: 'flex', gap: '20px' }}>
+            <div className="excalidraw-wrapper" style={{ flex: 1 }}>
+              <h3>왼쪽 화이트보드 {roomCreator === participantName ? '(내 보드)' : ''}</h3>
+              <Excalidraw
+                onChange={(elements) => {
+                  if (roomCreator === participantName) {
                     setLeftElements(elements);
-                    socket.emit('updateLeftBoard', elements);
-                  }}
-                  elements={leftElements}
-                  excalidrawAPI={(api: any) => setLeftExcalidrawAPI(api)}
-                />
-              ) : (
-                <Excalidraw
-                  onChange={(elements: any) => {
+                    updateBoard(elements, 'left');
+                  }
+                }}
+                elements={leftElements}
+                excalidrawAPI={(api) => setLeftExcalidrawAPI(api)}
+                viewModeEnabled={roomCreator !== participantName}
+
+                updateScene={(elements) => {
+                  updateBoard(elements, 'left');
+                }}
+              />
+            </div>
+            <div className="excalidraw-wrapper" style={{ flex: 1 }}>
+              <h3>오른쪽 화이트보드 {roomCreator !== participantName ? '(내 보드)' : ''}</h3>
+              <Excalidraw
+                onChange={(elements) => {
+                  if (roomCreator !== participantName) {
                     setRightElements(elements);
-                    socket.emit('updateRightBoard', elements);
-                  }}
-                  elements={rightElements}
-                  excalidrawAPI={(api: any) => setRightExcalidrawAPI(api)}
-                />
-              )}
+                    updateBoard(elements, 'right');
+                  }
+                }}
+                elements={rightElements}
+                excalidrawAPI={(api) => setRightExcalidrawAPI(api)}
+                viewModeEnabled={roomCreator === participantName}
+
+                updateScene={(elements) => {
+                  updateBoard(elements, 'right');
+                }}
+              />
             </div>
           </div> 
+          <div>
+            <button id="testLeftBoard">Test Left Board</button>
+            <button id="testRightBoard">Test Right Board</button>
+          </div>
         </div>
-
-
-
       )}
     </>
   );
