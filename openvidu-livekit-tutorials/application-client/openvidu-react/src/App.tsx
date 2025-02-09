@@ -187,14 +187,14 @@ function App() {
   }, []);
 
   // 방 생성 함수
-  async function createRoom(roomName: string) {
+  async function createRoom(roomName: string, creator: string) {
     setRoomName(roomName);
     const room = new Room();
     setRoom(room);
 
     // 방장 정보 저장 시 'rtc ' 접두사 없이 저장
-    localStorage.setItem('roomCreator', participantName);
-    setRoomCreator(participantName);
+    localStorage.setItem('roomCreator', creator);
+    setRoomCreator(creator);
 
     room.on(
       RoomEvent.TrackSubscribed,
@@ -227,19 +227,17 @@ function App() {
 
     try {
       // 토큰 발급 로직
-      const chatTokenResponse = await getToken(roomName, `chat ${participantName}`);
-      const excalidrawTokenResponse = await getToken(roomName, `excalidraw ${participantName}`);
-      const rtcTokenResponse = await getToken(roomName, `rtc ${participantName}`);
+      const createChatTokenResponse = await getToken(roomName, `chat ${participantName}`);
+      const createRtcTokenResponse = await getToken(roomName, `rtc ${participantName}`);
 
-      setChatToken(chatTokenResponse);
-      setRtcToken(rtcTokenResponse);
+      setChatToken(createChatTokenResponse);
+      setRtcToken(createRtcTokenResponse);
 
-      console.log("Chat Token (chat):", chatTokenResponse);
-      console.log("Excalidraw Token (excalidraw):", excalidrawTokenResponse);
-      console.log("RTC Token (rtc):", rtcTokenResponse);
+      console.log("Chat Token (chat):", createChatTokenResponse);
+      console.log("RTC Token (rtc):", createRtcTokenResponse);
 
       // 방에 연결
-      await room.connect(LIVEKIT_URL, rtcTokenResponse);
+      await room.connect(LIVEKIT_URL, createRtcTokenResponse);
 
       // 카메라와 마이크 활성화
       await room.localParticipant.enableCameraAndMicrophone();
@@ -259,24 +257,15 @@ function App() {
   // 방 참여 로직
   async function joinRoom(roomName: string, creator: string) {
     setRoomName(roomName);
-    // 새로운 Room 인스턴스 생성
     const room = new Room();
     setRoom(room);
 
-    // 방 이벤트 리스너 설정
-    // 새로운 트랙이 수신될 때
-    room.on(
-      RoomEvent.TrackSubscribed,
-      (
-        _track: RemoteTrack,
-        publication: RemoteTrackPublication, // 원격 트랙 정보
-        participant: RemoteParticipant // 참가자 식별자
-      ) => {
-        if (!localStorage.getItem('roomCreator')) {
-          const creatorIdentity = participant.identity;
-          localStorage.setItem('roomCreator', creatorIdentity);
-          setRoomCreator(creatorIdentity);
-        }
+    localStorage.setItem('roomCreator', creator.replace('rtc ', '')); // rtc 접두사 제거
+    setRoomCreator(creator.replace('rtc ', ''));
+
+    // 이벤트 리스너 설정
+    room.on(RoomEvent.TrackSubscribed,
+      (_track: RemoteTrack, publication: RemoteTrackPublication, participant: RemoteParticipant) => {
         setRemoteTracks((prev) => [
           ...prev,
           {
@@ -287,9 +276,7 @@ function App() {
       }
     );
 
-    // 트랙이 소멸될 때
-    room.on(
-      RoomEvent.TrackUnsubscribed,
+    room.on(RoomEvent.TrackUnsubscribed,
       (_track: RemoteTrack, publication: RemoteTrackPublication) => {
         setRemoteTracks((prev) =>
           prev.filter(
@@ -300,27 +287,24 @@ function App() {
     );
 
     try {
-      // 방 참여 토큰 발급
-      const rtcTokenResponse = await getToken(roomName, `rtc ${participantName}`);
-      const chatTokenResponse = await getToken(roomName, `chat ${participantName}`);
-      const excalidrawTokenResponse = await getToken(roomName, `excalidraw ${participantName}`);
+      // RTC 토큰 발급
+      const joinRtcTokenResponse = await joinToken(roomName, `rtc ${participantName}`);
+      const joinChatTokenResponse = await joinToken(roomName, `chat ${participantName}`);
 
-      setRtcToken(rtcTokenResponse);
-      setChatToken(chatTokenResponse);
+      setRtcToken(joinRtcTokenResponse);
+      setChatToken(joinChatTokenResponse);
 
-      // 방에 연결
-      await room.connect(LIVEKIT_URL, rtcTokenResponse);
+      // LiveKit 서버에 연결
+      await room.connect(LIVEKIT_URL, joinRtcTokenResponse);
 
-      await room.localParticipant.enableCameraAndMicrophone();
-      setLocalTrack(
-        room.localParticipant.videoTrackPublications.values().next().value
-          ?.videoTrack
-      );
+      // 방장이 아니라면 카메라와 마이크 활성화 필요X
+      // await room.localParticipant.enableCameraAndMicrophone();
+      // setLocalTrack(
+      //   room.localParticipant.videoTrackPublications.values().next().value?.videoTrack
+      // );
+
     } catch (error) {
-      console.log(
-        "There was an error joining the room:",
-        (error as Error).message
-      );
+      console.error("방 참여 중 오류 발생:", (error as Error).message);
       await leaveRoom();
     }
   }
@@ -352,7 +336,7 @@ function App() {
    * 실제 프로덕션 환경에서는 애플리케이션 서버가 엔드포인트 접근을 허용하기 위해 사용자를 식별해야 합니다.
    */
 
-  // 토큰 발급 로직
+  // 방 생성(createRoom 함수) 시 토큰 발급 로직
   async function getToken(roomName: string, participantName: string) {
     const response = await fetch(APPLICATION_SERVER_URL + "token", {
       method: "POST",
@@ -374,7 +358,27 @@ function App() {
     return data.token;
   }
 
+  // 방 참여(joinRoom 함수) 시 토큰 발급 로직
+  async function joinToken(roomName: string, participantName: string) {
+    const response = await fetch(APPLICATION_SERVER_URL + "join", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        roomName: roomName,
+        participantName: participantName,
+      }),
+    });
 
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`Failed to get token: ${error.errorMessage}`);
+    }
+
+    const data = await response.json();
+    return data.token;
+  }
 
   // 사용 가능한 방 목록을 가져오는 함수
   async function fetchRoomList() {
@@ -391,8 +395,8 @@ function App() {
   }
 
   // 방 성생 핸들러
-  const handleCreateRoom = (selectedRoom: string) => {
-    createRoom(selectedRoom);
+  const handleCreateRoom = (selectedRoom: string, creator: string) => {
+    createRoom(selectedRoom, creator);
   };
 
   // 방 참여 핸들러
@@ -440,7 +444,7 @@ function App() {
                   className="create-button"
                   type="button"
                   disabled={!roomName || !participantName}
-                  onClick={() => handleCreateRoom(roomName)}
+                  onClick={() => handleCreateRoom(roomName, participantName)}
                 >
                   방 만들기
                 </button>
@@ -457,7 +461,7 @@ function App() {
                       <div className="live-info">
                         <span className="live-badge">LIVE</span>
                         <h3>{room}</h3>
-                        <p>방장: {creator}</p>
+                        <p>방장: {creator.replace('rtc ', '')}</p>
                       </div>
                       <button
                         type="button"
@@ -563,10 +567,6 @@ function App() {
                 }}
               />
             </div>
-          </div>
-          <div>
-            <button id="testLeftBoard">Test Left Board</button>
-            <button id="testRightBoard">Test Right Board</button>
           </div>
         </div>
       )}
