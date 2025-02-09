@@ -257,7 +257,7 @@ function App() {
   }
 
   // 방 참여 로직
-  async function joinRoom(roomName: string) {
+  async function joinRoom(roomName: string, creator: string) {
     setRoomName(roomName);
     // 새로운 Room 인스턴스 생성
     const room = new Room();
@@ -396,8 +396,8 @@ function App() {
   };
 
   // 방 참여 핸들러
-  const handleJoinRoom = (selectedRoom: string) => {
-    joinRoom(selectedRoom);
+  const handleJoinRoom = (selectedRoom: string, creator: string) => {
+    joinRoom(selectedRoom, creator);
   };
 
   return (
@@ -451,17 +451,18 @@ function App() {
             <div className="live-list-panel">
               <h2>현재 진행중인 라이브</h2>
               <div className="live-list">
-                {Object.keys(availableRooms).map((room) => (
+                {Object.entries(availableRooms).map(([room, creator]) => (
                   <div key={room} className="live-card">
                     <div className="live-card-content">
                       <div className="live-info">
                         <span className="live-badge">LIVE</span>
                         <h3>{room}</h3>
+                        <p>방장: {creator}</p>
                       </div>
                       <button
                         type="button"
                         className="join-button"
-                        onClick={() => handleJoinRoom(room)}
+                        onClick={() => handleJoinRoom(room, creator)}
                       >
                         참여하기
                       </button>
