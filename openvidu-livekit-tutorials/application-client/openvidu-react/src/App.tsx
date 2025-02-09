@@ -26,7 +26,7 @@ type TrackInfo = {
 // 서버 URL 설정
 // APPLICATION_SERVER_URL: 토큰 발급 등 백엔드 서비스를 제공하는 서버 주소
 // LIVEKIT_URL: WebRTC 연결을 위한 LiveKit 서버 주소
-let APPLICATION_SERVER_URL = "https://jaemoon99.site:15555/"; 
+let APPLICATION_SERVER_URL = "https://jaemoon99.site:15555/";
 let LIVEKIT_URL = "wss://jaemoon99.site:7443/";
 // let LIVEKIT_URL = "wss://www.grimtalk.com:7443/";
 // let APPLICATION_SERVER_URL = "http://localhost:5555/";
@@ -71,7 +71,7 @@ function App() {
     "Participant" + Math.floor(Math.random() * 100)
   );
 
-  
+
   // 추후 강의 이름 혹은 random 값으로 받아올 예정
   const [roomName, setRoomName] = useState(""); // 현재 방 이름
 
@@ -83,7 +83,7 @@ function App() {
   //   "4234": "rtc Participant93"
   // }
   const [availableRooms, setAvailableRooms] = useState<string[]>([]); // 사용 가능한 방 목록
-  
+
   // 방장 정보는 로컬 스토리지에서 관리
   const [roomCreator, setRoomCreator] = useState<string | null>(() => {
     return localStorage.getItem('roomCreator');
@@ -100,98 +100,98 @@ function App() {
   const [leftExcalidrawAPI, setLeftExcalidrawAPI] = useState(null);
   const [rightExcalidrawAPI, setRightExcalidrawAPI] = useState(null);
 
-  
-// STOMP 클라이언트 설정
-const [stompClient, setStompClient] = useState<Client | null>(null);
-const [isConnected, setIsConnected] = useState(false);
 
-// STOMP 연결 설정
-useEffect(() => {
-  const client = new Client({
-    brokerURL: 'wss://jaemoon99.site:28080/ws',
-    onConnect: () => {
-      setIsConnected(true);
-      console.log('Connected to STOMP');
-    },
-    onDisconnect: () => {
-      setIsConnected(false);
-      console.log('Disconnected from STOMP');
-    }
-  });
+  // STOMP 클라이언트 설정
+  const [stompClient, setStompClient] = useState<Client | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
 
-  try {
-    client.activate();
-    setStompClient(client);
-  } catch (error) {
-    console.error('STOMP connection failed:', error);
-  }
-
-  return () => {
-    if (client.active) {
-      client.deactivate();
-    }
-  };
-}, []);
-
-// STOMP 구독 설정
-useEffect(() => {
-  if (stompClient && isConnected) {
-    const subscription = stompClient.subscribe('/topic/greetings', (message) => {
-      const data = JSON.parse(message.body);
-      console.log('Received data:', data); // 데이터 수신 확인
-
-      if (data.type === 'excalidraw') {
-        if (data.boardType === 'left' && roomCreator !== participantName) {
-          console.log('Updating left board:', data.elements);
-          setLeftElements([...data.elements]); // 배열 복사하여 상태 업데이트
-          if (leftExcalidrawAPI) {
-            leftExcalidrawAPI.updateScene({ elements: data.elements }); // API를 통한 즉시 업데이트
-          }
-        } else if (data.boardType === 'right' && roomCreator === participantName) {
-          console.log('Updating right board:', data.elements);
-          setRightElements([...data.elements]); // 배열 복사하여 상태 업데이트
-          if (rightExcalidrawAPI) {
-            rightExcalidrawAPI.updateScene({ elements: data.elements }); // API를 통한 즉시 업데이트
-          }
-        }
+  // STOMP 연결 설정
+  useEffect(() => {
+    const client = new Client({
+      brokerURL: 'wss://jaemoon99.site:28080/ws',
+      onConnect: () => {
+        setIsConnected(true);
+        console.log('Connected to STOMP');
+      },
+      onDisconnect: () => {
+        setIsConnected(false);
+        console.log('Disconnected from STOMP');
       }
     });
 
-    return () => {
-      subscription.unsubscribe();
-    };
-  }
-}, [stompClient, isConnected, roomCreator, participantName, leftExcalidrawAPI, rightExcalidrawAPI]);
-
-// 화이트보드 업데이트 함수
-const updateBoard = useCallback((elements: any, boardType: 'left' | 'right') => {
-  if (stompClient?.active && isConnected) {
     try {
-      stompClient.publish({
-        destination: '/app/hello',
-        body: JSON.stringify({
-          type: 'excalidraw',
-          boardType: boardType,
-          elements: elements,
-          sender: participantName
-        })
-      });
+      client.activate();
+      setStompClient(client);
     } catch (error) {
-      console.error('Failed to send Excalidraw data:', error);
+      console.error('STOMP connection failed:', error);
     }
-  }
-}, [stompClient, isConnected, participantName]);
+
+    return () => {
+      if (client.active) {
+        client.deactivate();
+      }
+    };
+  }, []);
+
+  // STOMP 구독 설정
+  useEffect(() => {
+    if (stompClient && isConnected) {
+      const subscription = stompClient.subscribe('/topic/greetings', (message) => {
+        const data = JSON.parse(message.body);
+        console.log('Received data:', data); // 데이터 수신 확인
+
+        if (data.type === 'excalidraw') {
+          if (data.boardType === 'left' && roomCreator !== participantName) {
+            console.log('Updating left board:', data.elements);
+            setLeftElements([...data.elements]); // 배열 복사하여 상태 업데이트
+            if (leftExcalidrawAPI) {
+              leftExcalidrawAPI.updateScene({ elements: data.elements }); // API를 통한 즉시 업데이트
+            }
+          } else if (data.boardType === 'right' && roomCreator === participantName) {
+            console.log('Updating right board:', data.elements);
+            setRightElements([...data.elements]); // 배열 복사하여 상태 업데이트
+            if (rightExcalidrawAPI) {
+              rightExcalidrawAPI.updateScene({ elements: data.elements }); // API를 통한 즉시 업데이트
+            }
+          }
+        }
+      });
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
+  }, [stompClient, isConnected, roomCreator, participantName, leftExcalidrawAPI, rightExcalidrawAPI]);
+
+  // 화이트보드 업데이트 함수
+  const updateBoard = useCallback((elements: any, boardType: 'left' | 'right') => {
+    if (stompClient?.active && isConnected) {
+      try {
+        stompClient.publish({
+          destination: '/app/hello',
+          body: JSON.stringify({
+            type: 'excalidraw',
+            boardType: boardType,
+            elements: elements,
+            sender: participantName
+          })
+        });
+      } catch (error) {
+        console.error('Failed to send Excalidraw data:', error);
+      }
+    }
+  }, [stompClient, isConnected, participantName]);
 
   useEffect(() => {
     fetchRoomList();
-  }, []); 
+  }, []);
 
   // 방 생성 함수
   async function createRoom(roomName: string) {
     setRoomName(roomName);
     const room = new Room();
     setRoom(room);
-    
+
     // 방장 정보 저장 시 'rtc ' 접두사 없이 저장
     localStorage.setItem('roomCreator', participantName);
     setRoomCreator(participantName);
@@ -256,74 +256,74 @@ const updateBoard = useCallback((elements: any, boardType: 'left' | 'right') => 
     }
   }
 
-    // 방 참여 로직
-    async function joinRoom(roomName: string) {
-      setRoomName(roomName);
-      // 새로운 Room 인스턴스 생성
-      const room = new Room();
-      setRoom(room);
-  
-      // 방 이벤트 리스너 설정
-      // 새로운 트랙이 수신될 때
-      room.on(
-        RoomEvent.TrackSubscribed,
-        (
-          _track: RemoteTrack,
-          publication: RemoteTrackPublication, // 원격 트랙 정보
-          participant: RemoteParticipant // 참가자 식별자
-        ) => {
-          if (!localStorage.getItem('roomCreator')) {
-            const creatorIdentity = participant.identity;
-            localStorage.setItem('roomCreator', creatorIdentity);
-            setRoomCreator(creatorIdentity);
-          }
-          setRemoteTracks((prev) => [
-            ...prev,
-            {
-              trackPublication: publication,
-              participantIdentity: participant.identity,
-            },
-          ]);
+  // 방 참여 로직
+  async function joinRoom(roomName: string) {
+    setRoomName(roomName);
+    // 새로운 Room 인스턴스 생성
+    const room = new Room();
+    setRoom(room);
+
+    // 방 이벤트 리스너 설정
+    // 새로운 트랙이 수신될 때
+    room.on(
+      RoomEvent.TrackSubscribed,
+      (
+        _track: RemoteTrack,
+        publication: RemoteTrackPublication, // 원격 트랙 정보
+        participant: RemoteParticipant // 참가자 식별자
+      ) => {
+        if (!localStorage.getItem('roomCreator')) {
+          const creatorIdentity = participant.identity;
+          localStorage.setItem('roomCreator', creatorIdentity);
+          setRoomCreator(creatorIdentity);
         }
-      );
-  
-      // 트랙이 소멸될 때
-      room.on(
-        RoomEvent.TrackUnsubscribed,
-        (_track: RemoteTrack, publication: RemoteTrackPublication) => {
-          setRemoteTracks((prev) =>
-            prev.filter(
-              (track) => track.trackPublication.trackSid !== publication.trackSid
-            )
-          );
-        }
-      );
-  
-      try {
-        // 방 참여 토큰 발급
-        const rtcTokenResponse = await getToken(roomName, `rtc ${participantName}`);
-        const chatTokenResponse = await getToken(roomName, `chat ${participantName}`);
-        const excalidrawTokenResponse = await getToken(roomName, `excalidraw ${participantName}`);
-  
-        setRtcToken(rtcTokenResponse);
-        setChatToken(chatTokenResponse);
-  
-        // 방에 연결
-        await room.connect(LIVEKIT_URL, rtcTokenResponse);
-        
-        await room.localParticipant.enableCameraAndMicrophone();
-        setLocalTrack(
-          room.localParticipant.videoTrackPublications.values().next().value
-            ?.videoTrack
-        );
-      } catch (error) {
-        console.log(
-          "There was an error joining the room:",
-          (error as Error).message
-        );
-        await leaveRoom();
+        setRemoteTracks((prev) => [
+          ...prev,
+          {
+            trackPublication: publication,
+            participantIdentity: participant.identity,
+          },
+        ]);
       }
+    );
+
+    // 트랙이 소멸될 때
+    room.on(
+      RoomEvent.TrackUnsubscribed,
+      (_track: RemoteTrack, publication: RemoteTrackPublication) => {
+        setRemoteTracks((prev) =>
+          prev.filter(
+            (track) => track.trackPublication.trackSid !== publication.trackSid
+          )
+        );
+      }
+    );
+
+    try {
+      // 방 참여 토큰 발급
+      const rtcTokenResponse = await getToken(roomName, `rtc ${participantName}`);
+      const chatTokenResponse = await getToken(roomName, `chat ${participantName}`);
+      const excalidrawTokenResponse = await getToken(roomName, `excalidraw ${participantName}`);
+
+      setRtcToken(rtcTokenResponse);
+      setChatToken(chatTokenResponse);
+
+      // 방에 연결
+      await room.connect(LIVEKIT_URL, rtcTokenResponse);
+
+      await room.localParticipant.enableCameraAndMicrophone();
+      setLocalTrack(
+        room.localParticipant.videoTrackPublications.values().next().value
+          ?.videoTrack
+      );
+    } catch (error) {
+      console.log(
+        "There was an error joining the room:",
+        (error as Error).message
+      );
+      await leaveRoom();
     }
+  }
 
   // 방 나가기 함수
   async function leaveRoom() {
@@ -402,7 +402,7 @@ const updateBoard = useCallback((elements: any, boardType: 'left' | 'right') => 
 
   return (
     <>
-      {!room ? (          
+      {!room ? (
         <div className="join-container">
           <div className="join-content">
             {/* 왼쪽 패널: 사용자 입력 섹션 */}
@@ -435,7 +435,7 @@ const updateBoard = useCallback((elements: any, boardType: 'left' | 'right') => 
                     required
                   />
                 </div>
-                
+
                 <button
                   className="create-button"
                   type="button"
@@ -562,7 +562,7 @@ const updateBoard = useCallback((elements: any, boardType: 'left' | 'right') => 
                 }}
               />
             </div>
-          </div> 
+          </div>
           <div>
             <button id="testLeftBoard">Test Left Board</button>
             <button id="testRightBoard">Test Right Board</button>
